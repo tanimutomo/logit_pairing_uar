@@ -1,19 +1,20 @@
 from comet_ml import Experiment
 
+# import advex_uar
+import numpy as np
 import os
 import sys
-import numpy as np
 import torch
+
 import torch.nn as nn
 import torch.optim as optim
+from advex_uar.attacks import PGDAttack
 
-from advertorch.attacks import PGDAttack as LPPGDAttack
-from advex-uar.attacks import PGDAttack as UARPGDAttack
-
-import dataset import models from options import Parser
-from utils import report_epoch_status, Timer
+from dataset import load_dataset
+from model import resnet20, resnet56
+from options import Parser
 from trainer import Trainer
-from models.initializer import init_he
+from utils import report_epoch_status, Timer
 
 
 def main():
@@ -27,34 +28,20 @@ def main():
         experiment.add_tags(opt.add_tags)
 
     # dataset and data loader
-    if opt.uar:
-        train_loader, val_loader, aval_loader = \
-            dataset.uar.load_dataset(opt.dataset, opt.batch_size,
-                                     opt.data_root, opt.noise,
-                                     opt.noise_std, 
-                                     opt.num_val_samples,
-                                     workers=4)
-    else:
-        train_loader, val_loader, adv_val_loader, _, num_classes = \
-            dataset.uar.load_dataset(opt.dataset, opt.batch_size,
-                                     opt.data_root, opt.noise,
-                                     opt.noise_std,
-                                     opt.num_val_samples,
-                                     workers=4)
+    train_loader, val_loader, aval_loader = \
+        load_dataset(opt.dataset, opt.batch_size,
+                     opt.data_root, opt.noise,
+                     opt.noise_std, 
+                     opt.num_val_samples,
+                     workers=4)
 
     # model
-    if opt.uar and opt.arch == 'resnet':
-        model = models.uar.resnet56()
-    if opt.arch == 'lenet':
-        model = models.lp.LeNet(num_classes)
-    elif opt.arch == 'resnet':
-        model = models.lp.ResNetv2_20(num_classes)
+    if opt.arch == 'resnet20':
+        model = resnet20()
+    elif opt.arch == 'resnet56':
+        model = resnet56()
     else:
         raise NotImplementedError
-
-    # weight init
-    if opt.weight_init == 'he':
-        model.apply(init_he)
 
     # move model to device
     model.to(opt.device)
@@ -66,11 +53,11 @@ def main():
 
     # advertorch attacker
     if opt.attack == 'pgd':
-        attacker = LPPGDAttack(
-            model, loss_fn = criterion, eps=opt.eps/255,
-            nb_iter=opt.num_steps, eps_iter=opt.eps_iter/255,
-            rand_init=True, clip_min=opt.clip_min, 
-            clip_max=opt.clip_max, ord=np.inf, targeted=False)
+        attacker = PGDAttack(
+            nb_its=opt.num_steps, eps_max=opt.eps,
+            step_size=opt.eps_iter, resol=32,
+            norm='linf', rand_init=True,
+            scale_each=opt.scale_each)
     else:
         raise NotImplementedError
 
@@ -80,6 +67,7 @@ def main():
                                eps=1e-6, weight_decay=opt.wd)
     elif opt.optim == 'SGD':
         optimizer = optim.SGD(model.parameters(), opt.lr,
+                              momentum=opt.momentum,
                               weight_decay=opt.wd)
     else:
         raise NotImplementedError
@@ -98,6 +86,9 @@ def main():
     # trainer
     trainer = Trainer(opt, model, criterion, attacker, optimizer)
     
+    # path to save model
+    save_path = os.path.join('ckpt', opt.dataset, 'models', opt.exp_name + '.pth')
+
     # epoch iteration
     for epoch in range(1, opt.num_epochs+1):
         trainer.epoch = epoch
@@ -124,7 +115,9 @@ def main():
         report_epoch_status(losses, acc1s, acc5s, trainer.num_loss,
                             epoch, opt, timer, experiment)
 
-    save_path = os.path.join('ckpt', opt.dataset, 'models', opt.exp_name + '.pth')
+        if epoch % opt.save_model_freq == 0:
+            trainer.save_model(save_path)
+
     trainer.save_model(save_path)
 
 if __name__ == '__main__':

@@ -47,15 +47,14 @@ def load_dataset(dataset, batch_size, data_root, noise=False,
     # adv val loader
     np.random.seed(123)  # load always the same random subset
     indices = np.random.choice(
-        np.arange(val_dataset.__len__()),
+        np.arange(len(val_dataset)),
         adv_subset)
     subset_sampler = SubsetSampler(indices)
 
     aval_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size,
+        val_dataset, batch_size=batch_size,
         shuffle=False, sampler=subset_sampler,
         num_workers=workers)
-
 
     return train_loader, val_loader, aval_loader
 
@@ -75,3 +74,11 @@ class SubsetSampler(Sampler):
 
     def set_shuffle(self, shuffle):
         self.shuffle = shuffle
+
+
+if __name__ == '__main__':
+    train_loader, val_loader, aval_loader = load_dataset(
+        'cifar10', 256, '~/data')
+    for itr, (x, t) in enumerate(aval_loader):
+        print(itr, x.shape, t.shape)
+

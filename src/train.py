@@ -104,7 +104,7 @@ def main():
                 trainer.validate(val_loader)
         if opt.adv_val_freq != -1 and epoch % opt.adv_val_freq == 0:
             aval_losses, aval_acc1s, aval_acc5s = \
-                trainer.adv_validate(adv_val_loader)
+                trainer.adv_validate(aval_loader)
         else:
             aval_losses, aval_acc1s, aval_acc5s = \
                     dict(), dict(), dict()

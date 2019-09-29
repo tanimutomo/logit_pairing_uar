@@ -76,12 +76,12 @@ class Trainer():
         if self.rand_target:
             # Determine the attack-target class
             attack_target = torch.randint(
-                0, len(self.num_classes) - 1, 
+                0, self.num_classes - 1, 
                 t.size(), dtype=t.dtype,
                 device=self.device)
             attack_target = torch.remainder(
                 t + attack_target + 1,
-                len(self.num_classes))
+                self.num_classes)
             # attack
             perturbed_x = self.attacker(self.model, x,
                                         attack_target,

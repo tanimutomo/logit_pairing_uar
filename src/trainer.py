@@ -1,7 +1,6 @@
 import sys
 import torch
 import torch.nn.functional as F
-from advertorch.context import ctx_noparamgrad_and_eval
 
 from utils import AverageMeter, accuracy
 
@@ -71,6 +70,31 @@ class Trainer():
 
         self.log += '\n'
 
+    def perturb(self, x, t):
+        self.model.eval()
+        # create AEs for target class
+        if self.rand_target:
+            # Determine the attack-target class
+            attack_target = torch.randint(
+                0, len(self.num_classes) - 1, 
+                t.size(), dtype=t.dtype,
+                device=self.device)
+            attack_target = torch.remainder(
+                t + attack_target + 1,
+                len(self.num_classes))
+            # attack
+            perturbed_x = self.attacker(self.model, x,
+                                        attack_target,
+                                        avoid_target=False,
+                                        scale_eps=self.scale_eps)
+        # create AEs
+        else:
+            perturbed_x = self.attacker(self.model, x, t,
+                                        avoid_target=True,
+                                        scale_eps=self.scale_eps)
+        self.model.train()
+        return perturbed_x
+
     def train(self, loader):
         # initialize all loss values
         ct_loss, at_loss, alp_loss, clp_loss, lsq_loss = \
@@ -92,8 +116,7 @@ class Trainer():
 
             # create adversarial examples
             if self.at or self.alp:
-                with ctx_noparamgrad_and_eval(self.model):
-                    perturbed_x = self.attacker.perturb(x, t)
+                perturbed_x = self.perturb(x, t)
                 perturbed_y = self.model(perturbed_x)
 
             # clean examples training
@@ -189,7 +212,7 @@ class Trainer():
             t = t.to(self.device, non_blocking=self.cuda)
 
             # attack
-            perturbed_x = self.attacker.perturb(x, t)
+            perturbed_x = self.perturb(x, t)
 
             # calcurate adversarial loss and accuracy
             perturbed_y = self.model(perturbed_x)

@@ -3,9 +3,8 @@ import numpy as np
 import torch
 import torchvision
 
+from torch.utils.data.sampler import Sampler 
 from torchvision import datasets, transforms
-
-from src.dataset.util import SubsetSampler
 
 
 def load_dataset(dataset, batch_size, data_root, noise=False,
@@ -49,7 +48,7 @@ def load_dataset(dataset, batch_size, data_root, noise=False,
     np.random.seed(123)  # load always the same random subset
     indices = np.random.choice(
         np.arange(val_dataset.__len__()),
-        subset)
+        adv_subset)
     subset_sampler = SubsetSampler(indices)
 
     aval_loader = torch.utils.data.DataLoader(
@@ -60,3 +59,19 @@ def load_dataset(dataset, batch_size, data_root, noise=False,
 
     return train_loader, val_loader, aval_loader
 
+
+class SubsetSampler(Sampler):
+    def __init__(self, indices):
+        self.indices = indices
+        self.shuffle = False
+
+    def __iter__(self):
+        if self.shuffle:
+            np.random.shuffle(self.indices)
+        return (self.indices[i] for i in range(len(self.indices)))
+
+    def __len__(self):
+        return len(self.indices)
+
+    def set_shuffle(self, shuffle):
+        self.shuffle = shuffle

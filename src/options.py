@@ -5,7 +5,7 @@ import torch
 
 class Parser():
     default_options = dict(
-        cifar10=dict(batch_size=32,
+        cifar10=dict(batch_size=256,
                      num_epochs=90,
                      arch='resnet56',
                      eps=16.0,

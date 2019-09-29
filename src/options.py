@@ -1,4 +1,5 @@
 import argparse
+import math
 import random
 import torch
 
@@ -30,7 +31,7 @@ class Parser():
                             help='number of samples for validation')
 
         # architecture
-        parser.add_argument('--arch', type=str, choices=['lenet', 'resnet'],
+        parser.add_argument('--arch', type=str, choices=['resnet20', 'resnet56'],
                             help='architecture name')
 
         # attack
@@ -88,6 +89,8 @@ class Parser():
                                 help='additional experiment name')
             parser.add_argument('--add_tags', type=str, nargs='*', default=[],
                                 help='additinal tags for comet')
+            parser.add_argument('--save_model_freq', type=int, default=10,
+                                help='frequency of saving model')
 
             # debug
             parser.add_argument('--report_itr_loss', type=str, nargs='*', default=[], 

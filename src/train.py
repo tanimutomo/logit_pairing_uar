@@ -8,13 +8,12 @@ import torch
 
 import torch.nn as nn
 import torch.optim as optim
-from advex_uar.attacks import PGDAttack
 
 from dataset import load_dataset
 from model import resnet20, resnet56
 from options import Parser
 from trainer import Trainer
-from utils import report_epoch_status, Timer
+from utils import report_epoch_status, Timer, get_attack
 
 
 def main():
@@ -51,15 +50,9 @@ def main():
     # criterion
     criterion = nn.CrossEntropyLoss()
 
-    # advertorch attacker
-    if opt.attack == 'pgd':
-        attacker = PGDAttack(
-            nb_its=opt.num_steps, eps_max=opt.eps,
-            step_size=opt.eps_iter, resol=32,
-            norm='linf', rand_init=True,
-            scale_each=opt.scale_each)
-    else:
-        raise NotImplementedError
+    # attacker
+    attacker = get_attack(opt.attack, opt.num_steps, opt.eps,
+                          opt.eps_iter, opt.scale_each)
 
     # optimizer
     if opt.optim == 'Adam':

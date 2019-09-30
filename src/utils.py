@@ -1,9 +1,70 @@
+import advex_uar
 import argparse
+import collections
+import datetime
 import sys
 import time
-import datetime
 import torch
+
 from collections import OrderedDict
+from advex_uar.attacks import \
+    (PGDAttack, ElasticAttack, FrankWolfeAttack,
+     JPEGAttack, GaborAttack, FogAttack, SnowAttack)
+
+attacks = ['pgd_linf', 'pgd_l2', 'fw_l1', 'jpeg_linf',
+           'jpeg_l2', 'jpeg_l1', 'elastic', 'fog',
+           'snow', 'gabor']
+
+def get_attack(attack, num_steps, eps, eps_iter, scale_each):
+    assert attack in attacks
+
+    if 'pgd' in attack:
+        norm = attack.split('_')[-1]
+        attacker = PGDAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            norm=norm, rand_init=True,
+            scale_each=scale_each)
+    elif attack == 'fw_l1':
+        attacker = FrankWolfeAttack(
+            nb_its=num_steps, eps_max=eps,
+            resol=32, rand_init=True,
+            scale_each=scale_each)
+    elif 'jpeg' in attack:
+        norm = attack.split('_')[-1]
+        attacker = JPEGAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            rand_init=True, opt=norm,
+            scale_each=scale_each)
+    elif attack == 'elastic':
+        elastic_kernel = 5
+        elastic_std = 3.0/224.0 * 32
+        attacker = ElasticAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            rand_init=True, scale_each=scale_each,
+            kernel_size=elastic_kernel,
+            kernel_std=elastic_std)
+    elif attack == 'fog':
+        attacker = FogAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            rand_init=True, scale_each=scale_each)
+    elif attack == 'snow':
+        attacker = SnowAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            rand_init=True, scale_each=scale_each)
+    elif attack == 'gabor':
+        attacker = GaborAttack(
+            nb_its=num_steps, eps_max=eps,
+            step_size=eps_iter, resol=32,
+            rand_init=True, scale_each=scale_each)
+    else:
+        raise NotImplementedError
+
+    return attacker
 
 
 def accuracy(output, target, topk=(1,)):

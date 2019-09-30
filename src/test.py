@@ -1,31 +1,34 @@
+import datetime
+import numpy as np
 import os
 import sys
-import numpy as np
 import torch
 import torch.nn as nn
 
-from advertorch.attacks import PGDAttack
-from options import Parser
-from utils import convert_model_from_parallel
+from advex_uar.attacks import PGDAttack
 from dataset import load_dataset
+from model import resnet20, resnet56
+from options import Parser
 from trainer import Trainer
-from models import LeNet, ResNetv2_20
+from utils import (report_epoch_status, Timer, convert_model_from_parallel,
+                   get_attack)
 
 
 def main():
     opt = Parser(train=False).get()
-    
+
     # dataset and data loader
-    _, val_loader, adv_val_loader, _, num_classes = \
-            load_dataset(opt.dataset, opt.batch_size, opt.data_root,
-                         False, 0.0, opt.num_val_samples,
-                         workers=4)
+    train_loader, val_loader, aval_loader = \
+        load_dataset(opt.dataset, opt.batch_size,
+                     opt.data_root, False, 0.0, 
+                     opt.num_val_samples,
+                     workers=4)
 
     # model
-    if opt.arch == 'lenet':
-        model = LeNet(num_classes)
-    elif opt.arch == 'resnet':
-        model = ResNetv2_20(num_classes)
+    if opt.arch == 'resnet20':
+        model = resnet20()
+    elif opt.arch == 'resnet56':
+        model = resnet56()
     else:
         raise NotImplementedError
 
@@ -42,16 +45,9 @@ def main():
     # criterion
     criterion = nn.CrossEntropyLoss()
 
-    # advertorch attacker
-    if opt.attack == 'pgd':
-        attacker = PGDAttack(
-            model, loss_fn = criterion, eps=opt.eps/255,
-            nb_iter=opt.num_steps, eps_iter=opt.eps_iter/255,
-            rand_init=True, clip_min=opt.clip_min, 
-            clip_max=opt.clip_max, ord=np.inf, targeted=False
-            )
-    else:
-        raise NotImplementedError
+    # attacker
+    attacker = get_attack(opt.attack, opt.num_steps, opt.eps,
+                          opt.eps_iter, opt.scale_each)
 
     # trainer
     trainer = Trainer(opt, model, criterion, attacker)
@@ -61,17 +57,27 @@ def main():
     val_losses, val_acc1s, val_acc5s = \
         trainer.validate(val_loader)
     aval_losses, aval_acc1s, aval_acc5s = \
-        trainer.adv_validate(adv_val_loader)
+        trainer.adv_validate(aval_loader)
 
-    print('[model] {}'.format(opt.weight_path))
-    print('[standard]\n'
-          'loss: {:.4f} | acc1: {:.2f}% | acc5: {:.2f}%'
-          '\n[adversarial]\n'
-          'loss: {:.4f} | acc1: {:.2f}% | acc5: {:.2f}%'.format(
-              val_losses['val'].avg, val_acc1s['val'].avg,
-              val_acc5s['val'].avg, aval_losses['aval'].avg,
-              aval_acc1s['aval'].avg, aval_acc5s['aval'].avg
-              ))
+    finished_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+    report = '[time] {}\n' \
+             '[model] {}\n' \
+             '[attack] method: {} | eps: {:.2f} | num_steps: {}\n' \
+             '[standard]\n' \
+             '  loss: {:.4f} | acc1: {:.2f}% | acc5: {:.2f}%\n' \
+             '[adversarial]\n' \
+             '  loss: {:.4f} | acc1: {:.2f}% | acc5: {:.2f}%\n\n'.format(
+                     finished_time, opt.weight_path,
+                     opt.attack, opt.eps, opt.num_steps, 
+                     val_losses['val'].avg, val_acc1s['val'].avg,
+                     val_acc5s['val'].avg, aval_losses['aval'].avg,
+                     aval_acc1s['aval'].avg, aval_acc5s['aval'].avg)
+
+    print(report)
+    exp_name = opt.weight_path.split('/')[-1][:-4]
+    report_path = os.path.join('ckpt', opt.dataset, 'reports', exp_name + '.txt')
+    with open(report_path, mode='a') as f:
+        f.write(report)
 
 
 if __name__ == '__main__':

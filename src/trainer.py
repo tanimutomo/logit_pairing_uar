@@ -37,7 +37,7 @@ class Trainer():
         if self.ct:
             self.acc1_meters['ct'] = AverageMeter()
             self.acc5_meters['ct'] = AverageMeter()
-        if self.ct:
+        if self.at:
             self.acc1_meters['at'] = AverageMeter()
             self.acc5_meters['at'] = AverageMeter()
 
@@ -112,15 +112,15 @@ class Trainer():
 
             x = x.to(self.device, non_blocking=self.cuda)
             t = t.to(self.device, non_blocking=self.cuda)
-            y = self.model(x)
 
-            # create adversarial examples
+            # create adversarial examples and forward
             if self.at or self.alp:
                 perturbed_x = self.perturb(x, t)
                 perturbed_y = self.model(perturbed_x)
 
             # clean examples training
             if self.ct:
+                y = self.model(x)
                 ct_loss = self.criterion(y, t)
                 ct_acc1, ct_acc5 = accuracy(y, t, topk=(1,5))
                 self.update_log_meters('ct', x.size(0), ct_loss.item(),

@@ -14,6 +14,10 @@ class Parser():
                      num_restarts=1,
                      noise_std=0.06))
 
+    attacks = ['pgd_linf', 'pgd_l2', 'fw_l1', 'jpeg_linf',
+               'jpeg_l2', 'jpeg_l1', 'elastic', 'fog',
+               'snow', 'gabor']
+
     def __init__(self, train=True):
         self.train = train
 
@@ -35,7 +39,7 @@ class Parser():
                             help='architecture name')
 
         # attack
-        parser.add_argument('--attack', type=str, default='pgd',
+        parser.add_argument('--attack', type=str, required=True, choices=self.attacks,
                             help='name of adversarial attack method')
         parser.add_argument('--eps', type=float, help='epsilon for lp-norm attack')
         parser.add_argument('--eps_iter', type=float, help='epsilon for each attack step')
@@ -105,6 +109,10 @@ class Parser():
         self.opt = parser.parse_args()
 
     def get(self):
+        # Set num_steps as 200 when evlauation
+        if not self.train and not self.opt.num_steps:
+            self.opt.num_steps = 200
+
         # Set None options in default_options
         for name, value in self.default_options[self.opt.dataset].items():
             if hasattr(self.opt, name) and not getattr(self.opt, name):
@@ -114,7 +122,12 @@ class Parser():
         self.opt.num_classes = 10
 
         # Set step size
-        self.opt.eps_iter = self.opt.eps / math.sqrt(self.opt.num_steps)
+        if self.opt.eps_iter is None:
+            self.opt.eps_iter = self.opt.eps / math.sqrt(self.opt.num_steps)
+
+        # Set scale eps
+        if not self.train:
+            self.opt.scale_eps = False
 
         # Add tags and set experiment name
         if self.train:

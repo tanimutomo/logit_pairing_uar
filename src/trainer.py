@@ -113,6 +113,10 @@ class Trainer():
             x = x.to(self.device, non_blocking=self.cuda)
             t = t.to(self.device, non_blocking=self.cuda)
 
+            # clean examples forward
+            if self.ct or self.clp or self.lsq:
+                y = self.model(x)
+
             # create adversarial examples and forward
             if self.at or self.alp:
                 perturbed_x = self.perturb(x, t)
@@ -120,7 +124,6 @@ class Trainer():
 
             # clean examples training
             if self.ct:
-                y = self.model(x)
                 ct_loss = self.criterion(y, t)
                 ct_acc1, ct_acc5 = accuracy(y, t, topk=(1,5))
                 self.update_log_meters('ct', x.size(0), ct_loss.item(),

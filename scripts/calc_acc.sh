@@ -7,23 +7,15 @@ weight_path=$2
 if [ "${attack}" = "pgd_linf" ]; then
   set_eps=(1 2 4 8 16 32)
 elif [ "${attack}" = "pgd_l2" ]; then
-  set_eps=(150 300 600 1200 2400 4800)
+  set_eps=(40 80 160 320 640 2560)
 elif [ "${attack}" = "fw_l1" ]; then
-  set_eps=(9562.5 19125 76500 153000 306000 612000)
+  set_eps=(195 390 780 1560 6240 24960)
 elif [ "${attack}" = "jpeg_linf" ]; then
-  set_eps=(0.062 0.125 0.250 0.500 1 2)
-elif [ "${attack}" = "jpeg_l2" ]; then
-  set_eps=(8 16 32 64 128 256)
+  set_eps=(0.03125 0.0625 0.125 0.25 0.5 1)
 elif [ "${attack}" = "jpeg_l1" ]; then
-  set_eps=(256 1024 4096 16384 65536 131072)
+  set_eps=(2 8 64 256 512 1024)
 elif [ "${attack}" = "elastic" ]; then
-  set_eps=(0.250 0.500 2 4 8 16)
-elif [ "${attack}" = "fog" ]; then
-  set_eps=(128 256 512 2048 4096 8192)
-elif [ "${attack}" = "snow" ]; then
-  set_eps=(0.062 0.125 0.250 2 4 8)
-elif [ "${attack}" = "gabor" ]; then
-  set_eps=(6.250 12.500 25 400 800 1600)
+  set_eps=(0.125 0.25 0.5 1 2 8)
 fi
 
 for eps in "${set_eps[@]}"

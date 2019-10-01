@@ -6,9 +6,9 @@ import torch
 class Parser():
     default_options = dict(
         cifar10=dict(batch_size=256,
-                     num_epochs=90,
+                     num_epochs=200,
                      arch='resnet56',
-                     eps=16.0,
+                     eps=32.0,
                      eps_iter=None,
                      num_steps=10,
                      num_restarts=1,
@@ -74,10 +74,10 @@ class Parser():
             # optimization
             parser.add_argument('--optim', type=str, default='SGD', choices=['Adam', 'SGD'],
                                 help='name of optimization method')
-            parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+            parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
             parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD')
-            parser.add_argument('--scheduler_step', type=int, default=0,
-                                help='step for lr-scheduler')
+            parser.add_argument('--scheduler_steps', type=int, nargs='*', default=[100, 150],
+                                help='multi-steps for lr-scheduler')
             parser.add_argument('--scheduler_gamma', type=float, default=0.1,
                                 help='gamma for lr-scheduler')
             parser.add_argument('--num_epochs', type=int, help='number of epochs')

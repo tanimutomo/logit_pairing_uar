@@ -66,9 +66,9 @@ def main():
         raise NotImplementedError
 
     # scheduler
-    if opt.scheduler_step:
-        scheduler = optim.lr_scheduler.StepLR(
-                optimizer, step_size=opt.scheduler_step,
+    if opt.scheduler_steps:
+        scheduler = optim.lr_scheduler.MultiStepLR(
+                optimizer, opt.scheduler_steps,
                 gamma=opt.scheduler_gamma)
     else:
         scheduler = None

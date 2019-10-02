@@ -31,9 +31,9 @@ class JPEGAttack(AttackWrapper):
         self.scale_each = scale_each
         self.l1_max = l1_max
         
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = nb_its
-        self.jpeg = JPEG().cuda()
+        self.jpeg = JPEG(device).to(device)
 
     def _convert_cat_var(self, cat_var, batch_size, height, width):
         y_var = cat_var[:, :height//8 * width//8 * 8 * 8].view((batch_size, height//8 * width//8, 8, 8))

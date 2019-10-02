@@ -20,7 +20,7 @@ class GaborAttack(AttackWrapper):
             scale_each (bool):     Whether to scale eps for each image in a batch separately
         """
         super().__init__(resol, device)
-        self.device
+        self.device = device
         self.nb_its = nb_its
         self.eps_max = eps_max
         self.step_size = step_size
@@ -28,7 +28,7 @@ class GaborAttack(AttackWrapper):
         self.rand_init = rand_init
         self.scale_each = scale_each
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = self.nb_its
 
     def _init(self, batch_size, num_kern):
@@ -42,8 +42,8 @@ class GaborAttack(AttackWrapper):
             sp_conv = torch.FloatTensor(sp_conv_numpy.todense()).view(
                         batch_size, self.resol, self.resol)
 
-            mask = (sp_conv == 0).cuda().float().view(-1, 1, self.resol, self.resol)
-            gabor_vars = sp_conv.clone().cuda().view(-1, 1, self.resol, self.resol)
+            mask = (sp_conv == 0).to(self.device).float().view(-1, 1, self.resol, self.resol)
+            gabor_vars = sp_conv.clone().to(self.device).view(-1, 1, self.resol, self.resol)
             gabor_vars.requires_grad_(True)
         return gabor_vars, mask
 
@@ -57,7 +57,7 @@ class GaborAttack(AttackWrapper):
             Lambda = (k_size / 4. - 3) * torch.rand(1) + 3
             theta = np.pi * torch.rand(1)
 
-            kernels.append(get_gabor_with_sides(k_size, sigma, Lambda, theta, sides).cuda())
+            kernels.append(get_gabor_with_sides(k_size, sigma, Lambda, theta, sides).to(self.device))
         gabor_kernel = torch.cat(kernels, 0).view(-1, 1, k_size, k_size)
         return gabor_kernel
 

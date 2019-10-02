@@ -10,9 +10,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-def fog_creator(fog_vars, bsize=1, mapsize=256, wibbledecay=1.75):
+def fog_creator(device, fog_vars, bsize=1, mapsize=256, wibbledecay=1.75):
     assert (mapsize & (mapsize - 1) == 0)
-    maparray = torch.from_numpy(np.empty((bsize, mapsize, mapsize), dtype=np.float32)).cuda()
+    maparray = torch.from_numpy(np.empty((bsize, mapsize, mapsize), dtype=np.float32)).to(device)
     maparray[:, 0, 0] = 0
     stepsize = mapsize
     wibble = 100

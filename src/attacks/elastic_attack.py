@@ -30,8 +30,9 @@ class ElasticAttack(AttackWrapper):
         self.rand_init = rand_init
         self.scale_each = scale_each
 
-        self.deformer = ElasticDeformation(resol, kernel_size, kernel_std)
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.deformer = ElasticDeformation(resol, device,
+                                           kernel_size, kernel_std)
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = self.nb_its
 
     def _init(self, batch_size, eps):

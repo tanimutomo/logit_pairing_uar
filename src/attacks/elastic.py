@@ -73,12 +73,13 @@ class GaussianSmoothing(nn.Module):
         return self.conv(inp, weight=self.weight, groups=self.groups)
 
 class ElasticDeformation(nn.Module):
-    def __init__(self, im_size, filter_size, std):
+    def __init__(self, im_size, device, filter_size, std):
         super().__init__()
         self.im_size = im_size
+        self.device = device
         self.filter_size = filter_size
         self.std = std
-        self.kernel = GaussianSmoothing(2, self.filter_size, self.std).cuda()
+        self.kernel = GaussianSmoothing(2, self.filter_size, self.std).to(device)
 
         self._get_base_flow()
 
@@ -88,7 +89,7 @@ class ElasticDeformation(nn.Module):
                 np.linspace(-1, 1, self.im_size, dtype='float32'))
         flow = np.stack((xflow, yflow), axis=-1)
         flow = np.expand_dims(flow, axis=0)
-        self.base_flow = nn.Parameter(torch.from_numpy(flow)).cuda().detach()
+        self.base_flow = nn.Parameter(torch.from_numpy(flow)).to(self.device).detach()
 
     def warp(self, im, flow):
         return F.grid_sample(im, flow, mode='bilinear')

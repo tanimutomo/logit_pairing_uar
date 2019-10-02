@@ -83,24 +83,24 @@ def rgb_to_ycbcr(image):
        [-37.797, -74.203, 112.],
        [112., -93.786, -18.214]],
       dtype=np.float32).T / 255
-  shift = torch.as_tensor([16., 128., 128.], device="cuda")
+  shift = torch.as_tensor([16., 128., 128.], device=device)
 
-  # result = torch.tensordot(image, torch.as_tensor(matrix, device="cuda"), dims=1) + shift
+  # result = torch.tensordot(image, torch.as_tensor(matrix, device=device), dims=1) + shift
   result = tensordot_pytorch(image, matrix, dims=1) + shift
   result.view(image.size())
   return result
 
 
-def rgb_to_ycbcr_jpeg(image):
+def rgb_to_ycbcr_jpeg(image, device):
   matrix = np.array(
       [[0.299, 0.587, 0.114],
        [-0.168736, -0.331264, 0.5],
        [0.5, -0.418688, -0.081312]],
       dtype=np.float32).T
-  shift = torch.as_tensor([0., 128., 128.], device="cuda")
+  shift = torch.as_tensor([0., 128., 128.], device=device)
 
-  # result = torch.tensordot(image, torch.as_tensor(matrix, device="cuda"), dims=1) + shift
-  result = tensordot_pytorch(image, torch.as_tensor(matrix, device='cuda'), dims=1) + shift
+  # result = torch.tensordot(image, torch.as_tensor(matrix, device=device), dims=1) + shift
+  result = tensordot_pytorch(image, torch.as_tensor(matrix, device=device), dims=1) + shift
   result.view(image.size())
   return result
 
@@ -148,16 +148,16 @@ def dct_8x8_ref(image):
   return result * scale
 
 
-def dct_8x8(image):
+def dct_8x8(image, device):
   image = image - 128
   tensor = np.zeros((8, 8, 8, 8), dtype=np.float32)
   for x, y, u, v in itertools.product(range(8), repeat=4):
     tensor[x, y, u, v] = np.cos((2 * x + 1) * u * np.pi / 16) * np.cos(
         (2 * y + 1) * v * np.pi / 16)
   alpha = np.array([1. / np.sqrt(2)] + [1] * 7)
-  scale = torch.FloatTensor(np.outer(alpha, alpha) * 0.25).cuda()
-  #result = scale * torch.tensordot(image, torch.as_tensor(tensor, device="cuda"), dims=2)
-  result = scale * tensordot_pytorch(image, torch.as_tensor(tensor, device="cuda"), dims=2)
+  scale = torch.FloatTensor(np.outer(alpha, alpha) * 0.25).to(device)
+  #result = scale * torch.tensordot(image, torch.as_tensor(tensor, device=device), dims=2)
+  result = scale * tensordot_pytorch(image, torch.as_tensor(tensor, device=device), dims=2)
   result.view(image.size())
   return result
 
@@ -173,12 +173,12 @@ def make_quantization_tables(self):
          [24, 35, 55, 64, 81, 104, 113, 92],
          [49, 64, 78, 87, 103, 121, 120, 101],
          [72, 92, 95, 98, 112, 100, 103, 99]],
-        dtype=np.float32).T, device="cuda")
+        dtype=np.float32).T, device=self.device)
     c_table = np.empty((8, 8), dtype=np.float32)
     c_table.fill(99)
     c_table[:4, :4] = np.array([[17, 18, 24, 47], [18, 21, 26, 66],
                                 [24, 26, 56, 99], [47, 66, 99, 99]]).T
-    self.c_table = torch.as_tensor(c_table, device="cuda")
+    self.c_table = torch.as_tensor(c_table, device=self.device)
 
 
 def y_quantize(self, image, rounding, rounding_var, factor=1):
@@ -218,17 +218,17 @@ def idct_8x8_ref(image):
   return result * 0.25 + 128
 
 
-def idct_8x8(image):
+def idct_8x8(image, device):
   alpha = np.array([1. / np.sqrt(2)] + [1] * 7)
-  alpha = torch.FloatTensor(np.outer(alpha, alpha)).cuda()
+  alpha = torch.FloatTensor(np.outer(alpha, alpha)).to(device)
   image = image * alpha
 
   tensor = np.zeros((8, 8, 8, 8), dtype=np.float32)
   for x, y, u, v in itertools.product(range(8), repeat=4):
     tensor[x, y, u, v] = np.cos((2 * u + 1) * x * np.pi / 16) * np.cos(
         (2 * v + 1) * y * np.pi / 16)
-  # result = 0.25 * torch.tensordot(image, torch.as_tensor(tensor, device="cuda"), dims=2) + 128
-  result = 0.25 * tensordot_pytorch(image, torch.as_tensor(tensor, device="cuda"), dims=2) + 128
+  # result = 0.25 * torch.tensordot(image, torch.as_tensor(tensor, device=device), dims=2) + 128
+  result = 0.25 * tensordot_pytorch(image, torch.as_tensor(tensor, device=device), dims=2) + 128
   result.view(image.size())
   return result
 
@@ -272,24 +272,24 @@ def ycbcr_to_rgb(image):
        [298.082, -100.291, -208.120],
        [298.082, 516.412, 0]],
       dtype=np.float32).T / 256
-  shift = torch.as_tensor([-222.921, 135.576, -276.836], device="cuda")
+  shift = torch.as_tensor([-222.921, 135.576, -276.836], device=device)
 
-  # result = torch.tensordot(image, torch.tensor(matrix, device="cuda"), dims=1) + shift
-  result = tensordot_pytorch(image, torch.tensor(matrix, device="cuda"), dims=1) + shift
+  # result = torch.tensordot(image, torch.tensor(matrix, device=device), dims=1) + shift
+  result = tensordot_pytorch(image, torch.tensor(matrix, device=device), dims=1) + shift
   result.view(image.size())
   return result
 
 
-def ycbcr_to_rgb_jpeg(image):
+def ycbcr_to_rgb_jpeg(image, device):
   matrix = np.array(
       [[1., 0., 1.402],
        [1, -0.344136, -0.714136],
        [1, 1.772, 0]],
       dtype=np.float32).T
-  shift = torch.FloatTensor([0, -128, -128]).cuda()
+  shift = torch.FloatTensor([0, -128, -128]).to(device)
 
-  # result = torch.tensordot(image + shift, torch.tensor(matrix, device="cuda"), dims=1)
-  result = tensordot_pytorch(image + shift, torch.tensor(matrix, device="cuda"), dims=1)
+  # result = torch.tensordot(image + shift, torch.tensor(matrix, device=device), dims=1)
+  result = tensordot_pytorch(image + shift, torch.tensor(matrix, device=device), dims=1)
   result.view(image.size())
   return result
 
@@ -322,7 +322,7 @@ def jpeg_compress_decode(self, image_channels_first, rounding_vars, lambder, dow
     image = F.pad(image, (left, right, top, bottom), 'replicate')
 
   # "Compression"
-  image = rgb_to_ycbcr_jpeg(image)
+  image = rgb_to_ycbcr_jpeg(image, self.device)
   if downsample_c:
     y, cb, cr = downsampling_420(image)
   else:
@@ -331,7 +331,7 @@ def jpeg_compress_decode(self, image_channels_first, rounding_vars, lambder, dow
   for k in components.keys():
     comp = components[k]
     comp = image_to_patches(comp)
-    comp = dct_8x8(comp)
+    comp = dct_8x8(comp, self.device)
     if k == 'y':
         comp = y_quantize(self, comp, noisy_round, 0.5 + 0.5 * rounding_vars[0], factor)
     elif k  == 'cb':
@@ -345,7 +345,7 @@ def jpeg_compress_decode(self, image_channels_first, rounding_vars, lambder, dow
     comp = components[k]
     comp = c_dequantize(self, comp, factor) if k in ('cb', 'cr') else y_dequantize(
         self, comp, factor)
-    comp = idct_8x8(comp)
+    comp = idct_8x8(comp, self.device)
     if k in ('cb', 'cr'):
       if downsample_c:
         comp = patches_to_image(comp, height / 2, width / 2)
@@ -360,7 +360,7 @@ def jpeg_compress_decode(self, image_channels_first, rounding_vars, lambder, dow
     image = upsampling_420(y, cb, cr)
   else:
     image = torch.stack((y, cb, cr), dim=-1)
-  image = ycbcr_to_rgb_jpeg(image)
+  image = ycbcr_to_rgb_jpeg(image, self.device)
 
   # Crop to original size
   if orig_height != height or orig_width != width:
@@ -384,8 +384,9 @@ def quality_to_factor(quality):
 
 
 class JPEG(nn.Module):
-    def __init__(self):
+    def __init__(self, device):
         super(JPEG, self).__init__()
+        self.device = device
         make_quantization_tables(self)
 
     def forward(self, pixel_inp, rounding_vars, epsilon):

@@ -30,14 +30,14 @@ class FogAttack(AttackWrapper):
         self.scale_each = scale_each
         self.wibble_decay = wibble_decay
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = self.nb_its    
 
     def _init(self, batch_size, map_size):
         fog_vars = []
         for i in range(int(np.log2(map_size))):
             for j in range(3):
-                var = torch.rand((batch_size, 2**i, 2**i), device="cuda")
+                var = torch.rand((batch_size, 2**i, 2**i), device=self.device)
                 var.requires_grad_()
                 fog_vars.append(var)
         return fog_vars
@@ -61,7 +61,7 @@ class FogAttack(AttackWrapper):
             step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         
         fog_vars = self._init(batch_size, map_size)
-        fog = fog_creator(fog_vars, batch_size, mapsize=map_size,
+        fog = fog_creator(self.device, fog_vars, batch_size, mapsize=map_size,
                           wibbledecay=self.wibble_decay)[:,:,16:-16,16:-16]
         s = pixel_model(torch.clamp((pixel_inp + base_eps[:, None, None, None] * fog) /
                                     (x_max + base_eps[:, None, None, None]) * 255., 0., 255.))

@@ -21,7 +21,7 @@ class FrankWolfeAttack(AttackWrapper):
         self.eps_max = eps_max
         num_pixels = resol * resol * 3
         self.l1_max = eps_max * num_pixels
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.rand_init = rand_init
         self.scale_each = scale_each
 

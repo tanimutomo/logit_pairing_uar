@@ -16,7 +16,7 @@ class GaussianSmoothing(nn.Module):
         kernel_size (int, sequence): Size of the gaussian kernel.
         sigma (float, sequence): Standard deviation of the gaussian kernel.
     """
-    def __init__(self, kernel_size, sigma, channels=1):
+    def __init__(self, device, kernel_size, sigma, channels=1):
         super(GaussianSmoothing, self).__init__()
         if isinstance(kernel_size, numbers.Number):
             kernel_size = [kernel_size] * 2
@@ -42,7 +42,7 @@ class GaussianSmoothing(nn.Module):
 
         # Reshape to depthwise convolutional weight
         kernel = kernel.view(1, 1, *kernel.size())
-        kernel = kernel.repeat(channels, *[1] * (kernel.dim() - 1)).cuda()
+        kernel = kernel.repeat(channels, *[1] * (kernel.dim() - 1)).to(device)
 
         self.register_buffer('weight', kernel)
         self.groups = channels
@@ -105,7 +105,7 @@ def weighted_line(r0, c0, r1, c1, w, rmin=0, rmax=np.inf):
     return (yy[mask].astype(int), xx[mask].astype(int), vals[mask])
 
 
-def make_kernels(snow_length_bound=13, blur=True):
+def make_kernels(device, snow_length_bound=13, blur=True):
     kernels = []
 
     flip = np.random.uniform() < 0.5
@@ -124,23 +124,23 @@ def make_kernels(snow_length_bound=13, blur=True):
         if flip:
             k_npy = k_npy[:, ::-1]
 
-        kernel = torch.FloatTensor(k_npy.copy()).view(1,1,k_size,k_size).cuda()
+        kernel = torch.FloatTensor(k_npy.copy()).view(1,1,k_size,k_size).to(device)
 
         if blur:
             blurriness = np.random.uniform(0.41, 0.6)
-            gaussian_blur = GaussianSmoothing(int(np.ceil(5 * blurriness)), blurriness)
+            gaussian_blur = GaussianSmoothing(device, int(np.ceil(5 * blurriness)), blurriness).to(device)
             kernel = gaussian_blur(kernel, padding=1)
         kernels.append(kernel)
 
     return kernels
 
 
-def snow_creator(intensities, k, resol):
+def snow_creator(intensities, k, resol, device):
     flake_grids = []
     k = torch.cat(k, 1)
 
     intensities_pow = torch.pow(intensities, 4)
-    flake_grids = torch.zeros((intensities.size(0), k.size(1), resol, resol)).cuda()
+    flake_grids = torch.zeros((intensities.size(0), k.size(1), resol, resol)).to(device)
 
     for i in range(4):
         flake_grids[:, i, ::4,i::4] = intensities_pow[:,i]

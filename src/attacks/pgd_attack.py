@@ -28,7 +28,7 @@ class PGDAttack(AttackWrapper):
         self.rand_init = rand_init
         self.scale_each = scale_each
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = self.nb_its
         
     def _run_one(self, pixel_model, pixel_inp, delta, target, eps, step_size, avoid_target=True):

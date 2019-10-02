@@ -36,12 +36,12 @@ class SnowAttack(AttackWrapper):
         self.scale_each = scale_each
         self.budget = budget
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        self.criterion = nn.CrossEntropyLoss().to(device)
         self.nb_backward_steps = self.nb_its    
 
     def _init(self, batch_size):
         # flake intensities follow an exponential distribution
-        flake_intensities = torch.exp(-1./(self.budget)*torch.rand(batch_size,7,self.resol//4,self.resol//4)).cuda()
+        flake_intensities = torch.exp(-1./(self.budget)*torch.rand(batch_size,7,self.resol//4,self.resol//4)).to(self.device)
         flake_intensities.requires_grad_(True)
         
         return flake_intensities

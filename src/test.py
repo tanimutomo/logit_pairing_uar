@@ -5,7 +5,6 @@ import sys
 import torch
 import torch.nn as nn
 
-from advex_uar.attacks import PGDAttack
 from dataset import load_dataset
 from model import resnet20, resnet56
 from options import Parser

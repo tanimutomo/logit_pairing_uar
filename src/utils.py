@@ -7,9 +7,10 @@ import time
 import torch
 
 from collections import OrderedDict
-from advex_uar.attacks import \
-    (PGDAttack, ElasticAttack, FrankWolfeAttack,
-     JPEGAttack, GaborAttack, FogAttack, SnowAttack)
+from attacks import (PGDAttack, ElasticAttack,
+                     FrankWolfeAttack, JPEGAttack,
+                     GaborAttack, FogAttack,
+                     SnowAttack)
 
 attacks = ['pgd_linf', 'pgd_l2', 'fw_l1', 'jpeg_linf',
            'jpeg_l2', 'jpeg_l1', 'elastic', 'fog',

@@ -45,8 +45,8 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # attacker
-    attacker = get_attack(opt.attack, opt.num_steps, opt.eps,
-                          opt.eps_iter, opt.scale_each)
+    attacker = get_attack(opt.attack, opt.device, opt.num_steps,
+                          opt.eps, opt.eps_iter, opt.scale_each)
 
     # trainer
     trainer = Trainer(opt, model, criterion, attacker)

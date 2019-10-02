@@ -3,10 +3,10 @@ import random
 import torch
 import torch.nn as nn
 
-from advex_uar.attacks.attacks import AttackWrapper
+from attacks.attacks import AttackWrapper
 
 class FrankWolfeAttack(AttackWrapper):
-    def __init__(self, nb_its, eps_max, resol, rand_init=True, scale_each=False):
+    def __init__(self, device, nb_its, eps_max, resol, rand_init=True, scale_each=False):
         """
         Parameters:
             nb_its (int):          Number of FW iterations.
@@ -15,7 +15,8 @@ class FrankWolfeAttack(AttackWrapper):
             rand_init (bool):      Whether to use a random init in the l1 ball
             scale_each (bool):     Whether to scale eps for each image in a batch separately
         """
-        super().__init__(resol)
+        super().__init__(resol, device)
+        self.device = device
         self.nb_its = nb_its
         self.eps_max = eps_max
         num_pixels = resol * resol * 3
@@ -55,8 +56,8 @@ class FrankWolfeAttack(AttackWrapper):
 
             bound = where_float(sign_grad > 0, 255 - pixel_inp, pixel_inp).view(batch_size, -1)
                 
-            k_min = torch.zeros((batch_size,1), dtype=torch.long, requires_grad=False, device='cuda')
-            k_max = torch.ones((batch_size,1), dtype=torch.long, requires_grad=False, device='cuda') * num_pixels
+            k_min = torch.zeros((batch_size,1), dtype=torch.long, requires_grad=False, device=self.device)
+            k_max = torch.ones((batch_size,1), dtype=torch.long, requires_grad=False, device=self.device) * num_pixels
                 
             # cum_bnd[k] is meant to track the L1 norm we end up with if we take 
             # the k indices with the largest gradient magnitude and push them to their boundary values (0 or 255)
@@ -73,7 +74,7 @@ class FrankWolfeAttack(AttackWrapper):
                 k_max = where_long(l1norms > base_eps, k_mid, k_max)
                 
             # next want to set the gradient of indices[0:k_min] to their corresponding bound
-            magnitudes = torch.zeros((batch_size, num_pixels), requires_grad=False, device='cuda')
+            magnitudes = torch.zeros((batch_size, num_pixels), requires_grad=False, device=self.device)
             for bi in range(batch_size):
                 magnitudes[bi, indices[bi, :k_min[bi,0]]] = bnd[bi, :k_min[bi,0]]
                 magnitudes[bi, indices[bi, k_min[bi,0]]] = base_eps[bi] - cum_bnd[bi, k_min[bi,0]]
@@ -95,11 +96,11 @@ class FrankWolfeAttack(AttackWrapper):
     def _init(self, shape, eps):
         if self.rand_init:
             # algorithm from https://arxiv.org/abs/math/0503650, Theorem 1
-            exp = torch.empty(shape, dtype=torch.float32, device='cuda')
+            exp = torch.empty(shape, dtype=torch.float32, device=self.device)
             exp.exponential_()
-            signs = torch.sign(torch.randn(shape, dtype=torch.float32, device='cuda'))
+            signs = torch.sign(torch.randn(shape, dtype=torch.float32, device=self.device))
             exp = exp * signs
-            exp_y = torch.empty(shape[0], dtype=torch.float32, device='cuda')
+            exp_y = torch.empty(shape[0], dtype=torch.float32, device=self.device)
             exp_y.exponential_()
             norm = exp_y + torch.norm(exp.view(shape[0], -1), 1.0, dim=1)
             init = exp / norm[:, None, None, None]
@@ -107,17 +108,17 @@ class FrankWolfeAttack(AttackWrapper):
             init.requires_grad_()
             return init
         else:
-            return torch.zeros(shape, requires_grad=True, device='cuda')
+            return torch.zeros(shape, requires_grad=True, device=self.device)
     
     def _forward(self, pixel_model, pixel_img, target, scale_eps=False, avoid_target=True):
         if scale_eps:
             if self.scale_each:
-                rand = torch.rand(pixel_img.size()[0], device='cuda')
+                rand = torch.rand(pixel_img.size()[0], device=self.device)
             else:
-                rand = random.random() * torch.ones(pixel_img.size()[0], device='cuda')
+                rand = random.random() * torch.ones(pixel_img.size()[0], device=self.device)
             base_eps = rand * self.l1_max
         else:
-            base_eps = self.l1_max * torch.ones(pixel_img.size()[0], device='cuda')
+            base_eps = self.l1_max * torch.ones(pixel_img.size()[0], device=self.device)
 
         pixel_inp = pixel_img.detach()
         pixel_inp.requires_grad = True

@@ -3,12 +3,12 @@ import random
 import torch
 import torch.nn as nn
 
-from advex_uar.attacks.attacks import AttackWrapper
-from advex_uar.attacks.elastic import ElasticDeformation
+from attacks.attacks import AttackWrapper
+from attacks.elastic import ElasticDeformation
 
 class ElasticAttack(AttackWrapper):
-    def __init__(self, nb_its, eps_max, step_size, resol,
-                 rand_init=True, scale_each=False,
+    def __init__(self, device, nb_its, eps_max, step_size,
+                 resol, rand_init=True, scale_each=False,
                  kernel_size=25, kernel_std=3):
         '''
         Arguments:
@@ -21,7 +21,8 @@ class ElasticAttack(AttackWrapper):
             kernel_size (int):     Size, in pixels of gaussian kernel
             kernel_std (int):      Standard deviation of kernel
         '''
-        super().__init__(resol)
+        super().__init__(resol, device)
+        self.device
         self.nb_its = nb_its
         self.eps_max = eps_max
         self.step_size = step_size
@@ -37,11 +38,11 @@ class ElasticAttack(AttackWrapper):
         if self.rand_init:
             # initialized randomly in [-1, 1], then scaled to [-base_eps, base_eps]
             flow = torch.rand((batch_size, 2, self.resol, self.resol),
-                              dtype=torch.float32, device='cuda') * 2 - 1
+                              dtype=torch.float32, device=self.device) * 2 - 1
             flow = eps[:, None, None, None] * flow
         else:
             flow = torch.zeros((batch_size, 2, self.resol, self.resol),
-                               dtype=torch.float32, device='cuda')
+                               dtype=torch.float32, device=self.device)
         flow.requires_grad_()
         return flow
         
@@ -51,14 +52,14 @@ class ElasticAttack(AttackWrapper):
 
         if scale_eps:
             if self.scale_each:
-                rand = torch.rand(pixel_img.size()[0], device='cuda')
+                rand = torch.rand(pixel_img.size()[0], device=self.device)
             else:
-                rand = random.random() * torch.ones(pixel_img.size()[0], device='cuda')
+                rand = random.random() * torch.ones(pixel_img.size()[0], device=self.device)
             base_eps = rand * self.eps_max
             step_size = rand * self.step_size
         else:
-            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device='cuda')
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device=self.device)
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
 
         # Our base_eps and step_size are in pixel scale, but flow is in [-1, 1] scale
         base_eps.mul_(2.0 / self.resol)

@@ -2,7 +2,13 @@
 
 attack=$1
 weight_path=$2
+gpu_id=$3
 
+cmd="pipenv run python src/test.py --dataset cifar10 --attack ${attack} --weight_path ${weight_path}"
+
+if [ -n "${gpu_id}" ]; then
+  cmd="${cmd} --gpu_ids ${gpu_id}"
+fi
 
 if [ "${attack}" = "pgd_linf" ]; then
   set_eps=(1 2 4 8 16 32)
@@ -20,7 +26,7 @@ fi
 
 for eps in "${set_eps[@]}"
 do
-  pipenv run python src/test.py --dataset cifar10 --attack ${attack} --eps ${eps} --weight_path ${weight_path}
+  ${cmd} --eps ${eps}
 done
 
 echo "Finished evaluation"

@@ -5,11 +5,11 @@ import torch
 import torch.nn as nn
 import scipy.sparse as sparse
 
-from advex_uar.attacks.attacks import AttackWrapper
-from advex_uar.attacks.gabor import get_gabor_with_sides, valid_position, gabor_rand_distributed
+from attacks.attacks import AttackWrapper
+from attacks.gabor import get_gabor_with_sides, valid_position, gabor_rand_distributed
 
 class GaborAttack(AttackWrapper):
-    def __init__(self, nb_its, eps_max, step_size, resol, rand_init=True, scale_each=False):
+    def __init__(self, device, nb_its, eps_max, step_size, resol, rand_init=True, scale_each=False):
         """
         Parameters:
             nb_its (int):          Number of GD iterations.
@@ -19,7 +19,8 @@ class GaborAttack(AttackWrapper):
             rand_init (bool):      Whether to init randomly in the norm ball
             scale_each (bool):     Whether to scale eps for each image in a batch separately
         """
-        super().__init__(resol)
+        super().__init__(resol, device)
+        self.device
         self.nb_its = nb_its
         self.eps_max = eps_max
         self.step_size = step_size
@@ -66,14 +67,14 @@ class GaborAttack(AttackWrapper):
 
         if scale_eps:
             if self.scale_each:
-                rand = torch.rand(pixel_img.size()[0], device='cuda')
+                rand = torch.rand(pixel_img.size()[0], device=self.device)
             else:
-                rand = random.random() * torch.ones(pixel_img.size()[0], device='cuda')
+                rand = random.random() * torch.ones(pixel_img.size()[0], device=self.device)
             base_eps = rand.mul(self.eps_max)
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         else:
-            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device='cuda')
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device=self.device)
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
 
         gabor_kernel = self._get_gabor_kernel(batch_size)
         num_kern = np.random.randint(50) + 1

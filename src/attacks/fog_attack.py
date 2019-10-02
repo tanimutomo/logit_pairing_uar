@@ -4,11 +4,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from advex_uar.attacks.attacks import AttackWrapper
-from advex_uar.attacks.fog import fog_creator
+from attacks.attacks import AttackWrapper
+from attacks.fog import fog_creator
 
 class FogAttack(AttackWrapper):
-    def __init__(self, nb_its, eps_max, step_size, resol, rand_init=True, scale_each=False,
+    def __init__(self, device, nb_its, eps_max, step_size, resol, rand_init=True, scale_each=False,
                  wibble_decay=2.0):
         """
         Parameters:
@@ -20,7 +20,8 @@ class FogAttack(AttackWrapper):
             scale_each (bool):     Whether to scale eps for each image in a batch separately
             wibble_decay (float):  Fog-specific parameter
         """
-        super().__init__(resol)
+        super().__init__(resol, device)
+        self.device = device
         self.nb_its = nb_its
         self.eps_max = eps_max
         self.step_size = step_size
@@ -50,14 +51,14 @@ class FogAttack(AttackWrapper):
         
         if scale_eps:
             if self.scale_each:
-                rand = torch.rand(pixel_img.size()[0], device='cuda')
+                rand = torch.rand(pixel_img.size()[0], device=self.device)
             else:
-                rand = random.random() * torch.ones(pixel_img.size()[0], device='cuda')
+                rand = random.random() * torch.ones(pixel_img.size()[0], device=self.device)
             base_eps = rand.mul(self.eps_max)
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         else:
-            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device='cuda')
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device=self.device)
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         
         fog_vars = self._init(batch_size, map_size)
         fog = fog_creator(fog_vars, batch_size, mapsize=map_size,

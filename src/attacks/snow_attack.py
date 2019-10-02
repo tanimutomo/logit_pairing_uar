@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from advex_uar.attacks.attacks import AttackWrapper
-from advex_uar.attacks.snow import snow_creator, make_kernels
+from attacks.attacks import AttackWrapper
+from attacks.snow import snow_creator, make_kernels
 
 def apply_snow(img, snow, scale, discolor=0.25):    
     out = (1 - discolor) * img +\
@@ -14,8 +14,8 @@ def apply_snow(img, snow, scale, discolor=0.25):
     return torch.clamp(out + scale[:, None, None, None] * snow, 0, 1)
 
 class SnowAttack(AttackWrapper):
-    def __init__(self, nb_its, eps_max, step_size, resol, rand_init=True, scale_each=False,
-                 budget=0.2):
+    def __init__(self, device, nb_its, eps_max, step_size, resol,
+                 rand_init=True, scale_each=False, budget=0.2):
         """
         Parameters:
             nb_its (int):          Number of GD iterations.
@@ -26,7 +26,8 @@ class SnowAttack(AttackWrapper):
             scale_each (bool):     Whether to scale eps for each image in a batch separately
             budget (float):        Controls rate parameter of snowflakes
         """
-        super().__init__(resol)
+        super().__init__(resol, device)
+        self.device = device
         self.nb_its = nb_its
         self.eps_max = eps_max
         self.step_size = step_size
@@ -51,14 +52,14 @@ class SnowAttack(AttackWrapper):
         
         if scale_eps:
             if self.scale_each:
-                rand = torch.rand(pixel_img.size()[0], device='cuda')
+                rand = torch.rand(pixel_img.size()[0], device=self.device)
             else:
-                rand = random.random() * torch.ones(pixel_img.size()[0], device='cuda')
+                rand = random.random() * torch.ones(pixel_img.size()[0], device=self.device)
             base_eps = rand.mul(self.eps_max)
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         else:
-            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device='cuda')
-            step_size = self.step_size * torch.ones(pixel_img.size()[0], device='cuda')
+            base_eps = self.eps_max * torch.ones(pixel_img.size()[0], device=self.device)
+            step_size = self.step_size * torch.ones(pixel_img.size()[0], device=self.device)
         
         flake_intensities = self._init(batch_size)
         kernels = make_kernels()

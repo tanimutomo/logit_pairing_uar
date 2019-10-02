@@ -138,6 +138,7 @@ class Parser():
                     base_tags.append(name)
                     self.opt.add_names.append(name)
             self.opt.add_tags.extend(base_tags)
+            self.opt.add_tags.append(self.opt.attack)
 
             self.opt.add_names.append(str(random.randint(100, 999)))
             self.opt.exp_name = '_'.join(self.opt.add_names)
